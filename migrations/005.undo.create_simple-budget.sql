@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS login;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS categories;
