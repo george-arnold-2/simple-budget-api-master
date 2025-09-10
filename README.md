@@ -1,201 +1,432 @@
-# Simple-Budget Api
+# Simple Budget API
 
-## Name of App
+A Node.js/Express API for personal budget tracking with user authentication and expense management.
 
-Simple Budget
+## Features
 
-## Project-Live
+- **User Authentication** - Register and sign in with email/password
+- **Category Management** - Create and manage expense/income categories
+- **Transaction Tracking** - Record and track financial transactions
+- **User-Specific Data** - Each user only sees their own data
+- **RESTful API** - Clean, predictable endpoints
 
-https://simple-budget.georgearnold88.now.sh/
+## Technology Stack
 
-- Make sure to click "Use Demo Account"
+- **Backend**: Node.js, Express.js
+- **Database**: PostgreSQL with Knex.js ORM
+- **Authentication**: Basic Auth with bcrypt password hashing
+- **Deployment**: Railway (cloud hosting)
 
-## Screenshots
+## API Base URL
 
-![Sign in Screen](./assets/pic1.png?raw=true 'sign in screen')
-![Category and Transaction Entry](./assets/pic2.png?raw=true 'Category and Transaction Entry')
-![Category Draft](./assets/pic3.png?raw=true 'Category Draft')
+```
+https://your-app-name.railway.app
+```
 
-## App Summary
+## Authentication
 
-This app's primary function is to track expenses. The main purpose of making budget is to control your spending, so this simplifies the normal budget app by omitting incoming money.
+All protected endpoints require Basic Authentication. Include the Authorization header:
 
-- Sign in (A demo account is set up, but any data added to the demo account will not carry between sign-ins.)
-- Add Categories
-- Add Transactions, making sure to select one of the categories that you already created
-- See the results!
-- The "Spending Tracker" will show you a visual display of where your money is going!
+```
+Authorization: Basic <base64-encoded-email:password>
+```
 
-## Technology
+### Example Token Generation (Frontend)
 
-- Main technologies are React and CSS.
-- Other technologies used: Jest- Testing, React-minimal-pie-chart, fortawesome for icons
+```javascript
+const email = 'user@example.com';
+const password = 'password123';
+const credentials = `${email}:${password}`;
+const token = `Basic ${btoa(credentials)}`;
+```
 
 ## API Endpoints
 
-### /categories:
+### Authentication Endpoints
 
-#### GET - Will fetch any categories stored in the database, an object with a name
+#### POST /api/register
 
-category= {
-id: exampleNum,
-name: "Name-of-category"
+Register a new user account.
+
+**Request Body:**
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
 }
+```
 
-#### POST- requires basic token authorization, Allows a user to post a category. In the front end, use stringify on a object containing the name of the category.
+**Response:**
 
-Example:  
-const category = {
-name: this.state.name
-};
-fetch(`${config.API_ENDPOINT}/categories`, {
-method: 'POST',
-headers: {
-'content-type': 'application/json',
-Authorization: `basic ${TokenService.getAuthToken()}`
-},
-body: JSON.stringify(category)
-})
-
-### /categories/:categoriesId
-
-#### GET- retrieves the id and name of a specific category
-
-GET /categories/4 would retrieve the object:
-{id: 4,
-name: "Name-of-category-with-Id-of-4
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "joined": "2024-01-15T10:30:00.000Z"
 }
+```
 
-#### DELETE
+#### POST /api/signin
 
-_Note_ the categoryId associated with the transaction links the transaction to a category. The category cannot be deleted if there is a transaction linked to it.
+Sign in with existing credentials.
 
-DELETE /categories/4
-requires - Authorization: `basic ${TokenService.getAuthToken()}`
-Result would delete the category with id of 4
-fetch(`${config.API_ENDPOINT}/categories/4`, {
-method: 'DELETE',
-headers: {
-'content-type': 'application/json',
-Authorization: `basic ${TokenService.getAuthToken()}`
+**Request Body:**
+
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
 }
+```
 
-#### PATCH
+**Response:**
 
-PATCH /categories/4
-
-requires - Authorization: `basic ${TokenService.getAuthToken()}`
-Result would update the name of the category with id of 4
-
-newCategory = {
-name: "New name"
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "joined": "2024-01-15T10:30:00.000Z"
 }
-fetch(`${config.API_ENDPOINT}/categories/4`, {
-method: 'PATCH',
-headers: {
-'content-type': 'application/json',
-Authorization: `basic ${TokenService.getAuthToken()}`
+```
+
+### Category Endpoints
+
+#### GET /api/categories
+
+Get all categories for the authenticated user.
+
+**Headers:** `Authorization: Basic <token>`
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Food",
+    "user": 1
+  },
+  {
+    "id": 2,
+    "name": "Transportation",
+    "user": 1
+  }
+]
+```
+
+#### POST /api/categories
+
+Create a new category.
+
+**Headers:** `Authorization: Basic <token>`
+
+**Request Body:**
+
+```json
+{
+  "name": "Entertainment"
 }
-body: JSON.stringify(newCategory)
+```
 
-### /transactions
+**Response:**
 
-#### GET - Will fetch any transactions stored in the database, an object with an id, venue, amount, categoryId
-
-_Note_ the categoryId associated with the transaction links the transaction to a category. The category cannot be deleted if there is a transaction linked to it.
-transaction = {
-id: exampleNum,
-venue: "name-of-venue"
-amount: num-value-what-was-spent
-categoryId: num- ("category Id associated with transaction purchase")
+```json
+{
+  "id": 3,
+  "name": "Entertainment",
+  "user": 1
 }
+```
 
-#### POST
+#### GET /api/categories/:categoryId
 
-_Note_ the categoryId associated with the transaction links the transaction to a category. The category cannot be deleted if there is a transaction linked to it.
-const transaction = {
-venue: venue,
-amount: amount,
-category_id: categoryId <--- this should come from categories stored via POST /categoriesId
-};
+Get a specific category by ID.
 
-fetch(`${config.API_ENDPOINT}/transactions`, {
-method: 'POST',
-headers: {
-'content-type': 'application/json',
-Authorization: `basic ${TokenService.getAuthToken()}`
-},
-body: JSON.stringify(transaction)
-})
+**Headers:** `Authorization: Basic <token>`
 
-### /transactions/:transactionsId
+**Response:**
 
-#### GET
-
-/transactions/4 would retrieve the object:
-{id: 4,
-venue: "Venue-of-transaction",
-amount: num, "amount-spent",
-categoryId: num, "category associated with purchase"
+```json
+{
+  "id": 1,
+  "name": "Food",
+  "user": 1
 }
+```
 
-#### DELETE
+#### PATCH /api/categories/:categoryId
 
-_Note_ the categoryId associated with the transaction links the transaction to a category. The category cannot be deleted if there is a transaction linked to it.
+Update a category name.
 
-DELETE /transactions/4
-requires - Authorization: `basic ${TokenService.getAuthToken()}`
-Result would delete the transaction with id of 4
+**Headers:** `Authorization: Basic <token>`
 
-fetch(`${config.API_ENDPOINT}/transactions/4`, {
-method: 'DELETE',
-headers: {
-'content-type': 'application/json',
-Authorization: `basic ${TokenService.getAuthToken()}`
+**Request Body:**
+
+```json
+{
+  "name": "Updated Category Name"
 }
+```
 
-#### PATCH
+**Response:** `204 No Content`
 
-PATCH /transactions/4
+#### DELETE /api/categories/:categoryId
 
-requires - Authorization: `basic ${TokenService.getAuthToken()}`
-Result would update the name of the transactions with id of 4
+Delete a category.
 
-newTransaction = {id: 4,
-venue: "Venue-of-transaction",
-amount: num, "amount-spent",
-categoryId: num, "category associated with purchase"
+**Headers:** `Authorization: Basic <token>`
+
+**Response:** `202 Accepted`
+
+### Transaction Endpoints
+
+#### GET /api/transactions
+
+Get all transactions for the authenticated user.
+
+**Headers:** `Authorization: Basic <token>`
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "venue": "Grocery Store",
+    "amount": "25.50",
+    "comments": "Weekly groceries",
+    "categoryId": 1
+  },
+  {
+    "id": 2,
+    "venue": "Gas Station",
+    "amount": "45.00",
+    "comments": "Fuel",
+    "categoryId": 2
+  }
+]
+```
+
+#### POST /api/transactions
+
+Create a new transaction.
+
+**Headers:** `Authorization: Basic <token>`
+
+**Request Body:**
+
+```json
+{
+  "venue": "Coffee Shop",
+  "amount": 4.5,
+  "category_id": 1
 }
+```
 
-fetch(`${config.API_ENDPOINT}/transactions/4`, {
-method: 'PATCH',
-headers: {
-'content-type': 'application/json',
-Authorization: `basic ${TokenService.getAuthToken()}`
+**Response:**
+
+```json
+{
+  "id": 3,
+  "venue": "Coffee Shop",
+  "amount": "4.50",
+  "comments": null,
+  "categoryId": 1
 }
-body: JSON.stringify(newTransaction)
+```
 
-## Set up
+#### GET /api/transactions/:transactionId
 
-Complete the following steps to start a new project (NEW-PROJECT-NAME):
+Get a specific transaction by ID.
 
-1. Clone this repository to your local machine `git clone simple-budget-api NEW-PROJECTS-NAME`
-2. `cd` into the cloned repository
-3. Make a fresh start of the git history for this project with `rm -rf .git && git init`
-4. Install the node dependencies `npm install`
+**Headers:** `Authorization: Basic <token>`
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "venue": "Grocery Store",
+  "amount": "25.50",
+  "comments": "Weekly groceries",
+  "categoryId": 1
+}
+```
+
+#### PATCH /api/transactions/:transactionId
+
+Update a transaction.
+
+**Headers:** `Authorization: Basic <token>`
+
+**Request Body:**
+
+```json
+{
+  "venue": "Updated Venue",
+  "amount": 30.0,
+  "comments": "Updated description"
+}
+```
+
+**Response:** `204 No Content`
+
+#### DELETE /api/transactions/:transactionId
+
+Delete a transaction.
+
+**Headers:** `Authorization: Basic <token>`
+
+**Response:** `202 Accepted`
+
+## Error Responses
+
+### 400 Bad Request
+
+```json
+{
+  "error": "Missing 'name' in request body"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "Missing basic token"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": {
+    "message": "Transaction does not exist"
+  }
+}
+```
+
+### 500 Internal Server Error
+
+```json
+{
+  "error": {
+    "message": "server error"
+  }
+}
+```
+
+## Database Schema
+
+### Users Table
+
+- `id` (Primary Key)
+- `name` (VARCHAR 50)
+- `email` (TEXT, Unique)
+- `joined` (TIMESTAMP)
+
+### Login Table
+
+- `id` (Primary Key)
+- `email` (TEXT, Foreign Key to Users)
+- `hash` (VARCHAR 100, Bcrypt password hash)
+
+### Categories Table
+
+- `id` (Primary Key)
+- `name` (VARCHAR 50)
+- `user_id` (Foreign Key to Users)
+
+### Transactions Table
+
+- `id` (Primary Key)
+- `venue` (VARCHAR 50)
+- `amount` (DECIMAL 10,2)
+- `comments` (TEXT, Optional)
+- `category_id` (Foreign Key to Categories)
+- `user_id` (Foreign Key to Users)
+
+## Setup
+
+### Local Development
+
+1. Clone this repository
+2. Install dependencies: `npm install`
+3. Set up PostgreSQL database
+4. Set environment variables:
+   ```bash
+   export DATABASE_URL="postgresql://username:password@localhost/database_name"
+   export NODE_ENV="development"
+   ```
+5. Start the application: `npm run dev`
+
+### Deployment (Railway)
+
+1. Push code to GitHub
+2. Connect Railway to your GitHub repository
+3. Add PostgreSQL database in Railway
+4. Set environment variables in Railway dashboard
+5. Deploy automatically
 
 ## Scripts
 
-Start the application `npm start`
+- `npm start` - Start the application
+- `npm run dev` - Start with nodemon for development
+- `npm test` - Run tests
+- `npm run migrate` - Run database migrations
+- `npm run prettier` - Format code
 
-Start nodemon for the application `npm run dev`
+## Example Frontend Usage
 
-Run the tests `npm run migrate:test` & `npm test`
+```javascript
+// Register a new user
+const registerUser = async (name, email, password) => {
+  const response = await fetch(`${API_BASE_URL}/api/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+  return response.json();
+};
 
-Migrate the migrations `npm run migrate`
+// Sign in
+const signIn = async (email, password) => {
+  const response = await fetch(`${API_BASE_URL}/api/signin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  return response.json();
+};
 
-Organize the code `npm run prettier`
+// Create a category (requires authentication)
+const createCategory = async (name, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token,
+    },
+    body: JSON.stringify({ name }),
+  });
+  return response.json();
+};
 
-## Deploying
-
-When your new project is ready for deployment, add a new Heroku application with `heroku create`. This will make a new git remote called "heroku" and you can then `npm run deploy` which will push to this remote's master branch, and run a migration on the production.
+// Create a transaction (requires authentication)
+const createTransaction = async (venue, amount, category_id, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/transactions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token,
+    },
+    body: JSON.stringify({ venue, amount, category_id }),
+  });
+  return response.json();
+};
+```
