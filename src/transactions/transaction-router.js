@@ -6,20 +6,20 @@ const path = require('path');
 const { requireAuth } = require('../basic-auth');
 
 //what does this do?
-const serializeTransaction = transaction => ({
+const serializeTransaction = (transaction) => ({
   id: transaction.id,
   venue: transaction.venue,
   amount: transaction.amount,
   comments: transaction.comments,
-  categoryId: transaction.category_id
+  categoryId: transaction.category_id,
 });
 
 transactionsRouter
   .route('/')
   .all(requireAuth)
   .get((req, res, next) => {
-    TransactionService.getAllTransactions(req.app.get('db'))
-      .then(transactions => {
+    TransactionService.getAllTransactions(req.app.get('db'), req.user.id)
+      .then((transactions) => {
         res.json(transactions.map(serializeTransaction));
       })
       .catch(next);
@@ -31,11 +31,14 @@ transactionsRouter
     for (const [key, value] of Object.entries(newTransaction))
       if (value == null)
         return res.status(400).json({
-          error: `Missing '${key}' in request body`
+          error: `Missing '${key}' in request body`,
         });
 
+    // Add user_id to the transaction
+    newTransaction.user_id = req.user.id;
+
     TransactionService.insertTransaction(req.app.get('db'), newTransaction)
-      .then(transaction => {
+      .then((transaction) => {
         res
           .status(201)
           .location(path.posix.join(req.originalUrl, `/${transaction.id}`))
@@ -49,10 +52,10 @@ transactionsRouter
   .all(requireAuth)
   .all((req, res, next) => {
     TransactionService.getTransactionById(req.app.get('db'), req.params.transactionId)
-      .then(transaction => {
+      .then((transaction) => {
         if (!transaction) {
           return res.status(404).json({
-            error: { message: `Transaction does not exist` }
+            error: { message: `Transaction does not exist` },
           });
         }
         res.transaction = transaction;
@@ -65,8 +68,8 @@ transactionsRouter
   })
   .delete((req, res, next) => {
     TransactionService.deleteTransaction(req.app.get('db'), req.params.transactionId)
-      .then(numRowsAffected => {
-        res.status(202).json({ info: { numRowsAffected: numRowsAffected } }), end();
+      .then((numRowsAffected) => {
+        res.status(202).json({ info: { numRowsAffected: numRowsAffected } });
       })
       .catch(next);
   })
@@ -76,8 +79,8 @@ transactionsRouter
     const transactionToUpdate = { venue, amount, comments };
 
     TransactionService.updateTransaction(req.app.get('db'), req.params.transactionId, transactionToUpdate)
-      .then(numRowsAffected => {
-        res.status(204).json({ info: { numRowsAffected: numRowsAffected } }), end();
+      .then((numRowsAffected) => {
+        res.status(204).json({ info: { numRowsAffected: numRowsAffected } });
       })
       .catch(next);
   });
