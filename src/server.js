@@ -84,7 +84,6 @@ async function createTables() {
       await db.schema.createTable('categories', (table) => {
         table.increments('id').primary();
         table.string('name', 50).notNullable();
-        table.string('type').notNullable(); // 'income' or 'expense'
         table.integer('user_id').references('id').inTable('users').onDelete('SET NULL');
         table.timestamps(true, true);
       });

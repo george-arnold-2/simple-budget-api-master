@@ -22,7 +22,7 @@ categoriesRouter
   })
   .post(bodyParser, (req, res, next) => {
     const { name } = req.body;
-    const newCategory = { name, type: 'expense' }; // Default to expense type
+    const newCategory = { name };
 
     // Validate required fields
     if (!name) {
