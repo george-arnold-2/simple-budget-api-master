@@ -4,10 +4,10 @@ const CategoryService = require('./categories-service');
 const bodyParser = express.json();
 const { requireAuth } = require('../basic-auth');
 
-const serializeCategory = category => ({
+const serializeCategory = (category) => ({
   id: category.id,
   name: category.name,
-  user: category.user_id
+  user: category.user_id,
 });
 
 categoriesRouter
@@ -15,26 +15,26 @@ categoriesRouter
   .all(requireAuth)
   .get((req, res, next) => {
     CategoryService.getAllCategories(req.app.get('db'), req.user.id)
-      .then(categories => {
+      .then((categories) => {
         res.json(categories.map(serializeCategory));
       })
       .catch(next);
   })
   .post(bodyParser, (req, res, next) => {
     const { name } = req.body;
-    const newCategory = { name };
-    for (const [key, value] of Object.entries(newCategory))
-      if (value == null)
-        return res.status(400).json({
-          error: `Missing '${key}' in request body`
-        });
+    const newCategory = { name, type: 'expense' }; // Default to expense type
+
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({
+        error: "Missing 'name' in request body",
+      });
+    }
+
     newCategory.user_id = req.user.id;
     CategoryService.insertCategory(req.app.get('db'), newCategory)
-      .then(category => {
-        res
-          .status(201)
-          .location(`${category.id}`)
-          .json(serializeCategory(category));
+      .then((category) => {
+        res.status(201).location(`${category.id}`).json(serializeCategory(category));
       })
       .catch(next);
   });
@@ -45,7 +45,7 @@ categoriesRouter
   .all((req, res, next) => {
     const { categoryId } = req.params;
     CategoryService.getById(req.app.get('db'), categoryId)
-      .then(category => {
+      .then((category) => {
         res.category = category;
         next();
       })
@@ -57,8 +57,8 @@ categoriesRouter
   .delete((req, res, next) => {
     const { categoryId } = req.params;
     CategoryService.deleteCategory(req.app.get('db'), req.params.categoryId)
-      .then(numRowsAffected => {
-        res.status(202).json({ info: { numRowsAffected: numRowsAffected } }), end();
+      .then((numRowsAffected) => {
+        res.status(202).json({ info: { numRowsAffected: numRowsAffected } });
       })
       .catch(next);
   })
@@ -66,7 +66,7 @@ categoriesRouter
     const { name } = req.body;
     const categoryToUpdate = { name };
     CategoryService.updateCategory(req.app.get('db'), req.params.categoryId, categoryToUpdate)
-      .then(numRowsAffected => {
+      .then((numRowsAffected) => {
         res.status(202).end();
       })
       .catch(next);
