@@ -19,44 +19,18 @@ async function setupDatabase() {
     await db.raw('SELECT NOW()');
     console.log('✅ Database connected successfully');
 
-    // Check if we need to recreate tables (only if schema is wrong)
-    const needsRecreation = await checkSchemaNeedsUpdate();
-    if (needsRecreation) {
-      console.log('🔄 Schema needs update, recreating tables...');
+    // Check if we should force recreate tables
+    const forceRecreate = process.env.FORCE_RECREATE_TABLES === 'true';
+
+    if (forceRecreate) {
+      console.log('🔄 FORCE_RECREATE_TABLES=true, dropping and recreating tables...');
       await dropTables();
-      await createTables();
-    } else {
-      console.log('✅ Database schema is up to date');
-      await createTables(); // This will skip existing tables
     }
+
+    // Create tables if they don't exist
+    await createTables();
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-  }
-}
-
-async function checkSchemaNeedsUpdate() {
-  try {
-    // Check if transactions table has the correct columns
-    const hasTransactionsTable = await db.schema.hasTable('transactions');
-    if (!hasTransactionsTable) {
-      return true; // Need to create tables
-    }
-
-    // Check if transactions table has 'venue' column (new schema)
-    const columns = await db('transactions').columnInfo();
-    const hasVenueColumn = 'venue' in columns;
-    const hasDescriptionColumn = 'description' in columns;
-
-    // If it has 'description' but not 'venue', schema needs update
-    if (hasDescriptionColumn && !hasVenueColumn) {
-      console.log('⚠️  Old schema detected (has description, missing venue)');
-      return true;
-    }
-
-    return false; // Schema is correct
-  } catch (error) {
-    console.log('⚠️  Could not check schema, assuming recreation needed');
-    return true;
   }
 }
 
