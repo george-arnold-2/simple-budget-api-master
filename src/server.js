@@ -19,10 +19,57 @@ async function setupDatabase() {
     await db.raw('SELECT NOW()');
     console.log('✅ Database connected successfully');
 
-    // Create tables if they don't exist
-    await createTables();
+    // Check if we need to recreate tables (only if schema is wrong)
+    const needsRecreation = await checkSchemaNeedsUpdate();
+    if (needsRecreation) {
+      console.log('🔄 Schema needs update, recreating tables...');
+      await dropTables();
+      await createTables();
+    } else {
+      console.log('✅ Database schema is up to date');
+      await createTables(); // This will skip existing tables
+    }
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
+  }
+}
+
+async function checkSchemaNeedsUpdate() {
+  try {
+    // Check if transactions table has the correct columns
+    const hasTransactionsTable = await db.schema.hasTable('transactions');
+    if (!hasTransactionsTable) {
+      return true; // Need to create tables
+    }
+
+    // Check if transactions table has 'venue' column (new schema)
+    const columns = await db('transactions').columnInfo();
+    const hasVenueColumn = 'venue' in columns;
+    const hasDescriptionColumn = 'description' in columns;
+
+    // If it has 'description' but not 'venue', schema needs update
+    if (hasDescriptionColumn && !hasVenueColumn) {
+      console.log('⚠️  Old schema detected (has description, missing venue)');
+      return true;
+    }
+
+    return false; // Schema is correct
+  } catch (error) {
+    console.log('⚠️  Could not check schema, assuming recreation needed');
+    return true;
+  }
+}
+
+async function dropTables() {
+  try {
+    // Drop tables in reverse order (due to foreign key constraints)
+    await db.schema.dropTableIfExists('transactions');
+    await db.schema.dropTableIfExists('categories');
+    await db.schema.dropTableIfExists('login');
+    await db.schema.dropTableIfExists('users');
+    console.log('✅ Tables dropped successfully');
+  } catch (error) {
+    console.error('❌ Error dropping tables:', error.message);
   }
 }
 
@@ -39,6 +86,8 @@ async function createTables() {
         table.timestamps(true, true);
       });
       console.log('✅ Users table created');
+    } else {
+      console.log('✅ Users table already exists');
     }
 
     // Login table (for authentication)
@@ -51,6 +100,8 @@ async function createTables() {
         table.timestamps(true, true);
       });
       console.log('✅ Login table created');
+    } else {
+      console.log('✅ Login table already exists');
     }
 
     // Categories table
@@ -64,6 +115,8 @@ async function createTables() {
         table.timestamps(true, true);
       });
       console.log('✅ Categories table created');
+    } else {
+      console.log('✅ Categories table already exists');
     }
 
     // Transactions table
@@ -79,6 +132,8 @@ async function createTables() {
         table.timestamps(true, true);
       });
       console.log('✅ Transactions table created');
+    } else {
+      console.log('✅ Transactions table already exists');
     }
 
     console.log('✅ Database setup complete!');
