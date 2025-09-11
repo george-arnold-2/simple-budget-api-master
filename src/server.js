@@ -71,11 +71,11 @@ async function createTables() {
     if (!hasTransactionsTable) {
       await db.schema.createTable('transactions', (table) => {
         table.increments('id').primary();
+        table.string('venue', 50).notNullable();
         table.decimal('amount', 10, 2).notNullable();
-        table.string('description');
+        table.text('comments');
         table.integer('category_id').references('id').inTable('categories');
         table.integer('user_id').references('id').inTable('users').onDelete('SET NULL');
-        table.date('date').notNullable();
         table.timestamps(true, true);
       });
       console.log('✅ Transactions table created');
